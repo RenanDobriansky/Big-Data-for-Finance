@@ -1,19 +1,19 @@
-# config.py
+from constants import COSAN_COLORS
 
-# Paleta de Cores FAE (Identidade Visual)
+
 CORES_FAE = {
-    'roxo': '#9B2BC7',
-    'dourado': '#E0D449',
-    'azul_esverdeado': '#82E8E1',
-    'amarelo_claro': '#F6ED52',
-    'cinza_claro': '#F0F0F0',
-    'cinza_escuro': '#404040'
+    "roxo": COSAN_COLORS["violet"],
+    "dourado": COSAN_COLORS["amber"],
+    "azul_esverdeado": COSAN_COLORS["teal"],
+    "amarelo_claro": COSAN_COLORS["lime"],
+    "cinza_claro": "#F0F4F8",
+    "cinza_escuro": "#334155",
 }
 
-# Configurações Gerais
+
 PAGE_CONFIG = {
-    "page_title": "CVM Data Lake Explorer",
-    "page_icon": "📊",
+    "page_title": "Cosan Executive Dashboard",
+    "page_icon": "📈",
     "layout": "wide",
-    "initial_sidebar_state": "expanded"
+    "initial_sidebar_state": "expanded",
 }
