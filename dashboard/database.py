@@ -234,21 +234,67 @@ def get_statement_highlights(statement_type: str, cnpj: str = COSAN_CNPJ):
 # ==============================================================================
 
 
-@st.cache_data(ttl=900)
-def get_available_years(cnpj: str = COSAN_CNPJ):
-    query = """
-    SELECT DISTINCT "ANO_FISCAL"
-    FROM "layer_03_gold"."mart_indicadores_financeiros"
-    WHERE "CNPJ_CIA" = :cnpj
-      AND "ANO_FISCAL" IS NOT NULL
-    ORDER BY "ANO_FISCAL" DESC;
-    """
-    df = _safe_read_sql(query, {"cnpj": cnpj})
+def _read_available_years(cnpj: str | None = None) -> list[int]:
+    if cnpj:
+        query = """
+        SELECT DISTINCT "ANO_FISCAL"
+        FROM "layer_03_gold"."mart_indicadores_financeiros"
+        WHERE "CNPJ_CIA" = :cnpj
+          AND "ANO_FISCAL" IS NOT NULL
+        ORDER BY "ANO_FISCAL" DESC;
+        """
+        df = _safe_read_sql(query, {"cnpj": cnpj})
+    else:
+        query = """
+        SELECT DISTINCT "ANO_FISCAL"
+        FROM "layer_03_gold"."mart_indicadores_financeiros"
+        WHERE "ANO_FISCAL" IS NOT NULL
+        ORDER BY "ANO_FISCAL" DESC;
+        """
+        df = _safe_read_sql(query)
     return df["ANO_FISCAL"].astype(int).tolist() if not df.empty else []
 
 
 @st.cache_data(ttl=900)
-def get_cosan_sector_from_db(cnpj: str = COSAN_CNPJ) -> str:
+def get_available_years():
+    return _read_available_years()
+
+
+@st.cache_data(ttl=900)
+def get_company_available_years(cnpj: str = COSAN_CNPJ):
+    return _read_available_years(cnpj)
+
+
+@st.cache_data(ttl=900)
+def get_companies_for_dashboard():
+    query = """
+    WITH base AS (
+        SELECT
+            "CNPJ_CIA",
+            MAX("RAZAO_SOCIAL") AS "DENOM_CIA",
+            MAX("SETOR") AS "SETOR"
+        FROM "layer_03_gold"."mart_indicadores_financeiros"
+        WHERE "CNPJ_CIA" IS NOT NULL
+        GROUP BY "CNPJ_CIA"
+    )
+    SELECT
+        "CNPJ_CIA",
+        "DENOM_CIA",
+        "SETOR"
+    FROM base
+    ORDER BY
+        CASE WHEN "CNPJ_CIA" = :default_cnpj THEN 0 ELSE 1 END,
+        "DENOM_CIA";
+    """
+    df = _safe_read_sql(query, {"default_cnpj": COSAN_CNPJ})
+    if df.empty:
+        return df
+    df["LABEL"] = df["DENOM_CIA"] + " | " + df["CNPJ_CIA"]
+    return df
+
+
+@st.cache_data(ttl=900)
+def get_company_sector_from_db(cnpj: str = COSAN_CNPJ) -> str:
     query = """
     SELECT "SETOR"
     FROM "layer_03_gold"."mart_indicadores_financeiros"
@@ -371,9 +417,10 @@ def get_indicator_detail_table(year: int, cnpj: str = COSAN_CNPJ):
 
 @st.cache_data(ttl=300)
 def get_sector_indicator_ranking(year: int, indicator_code: str, sector: str | None = None):
-    sector = sector or get_cosan_sector_from_db()
+    sector = sector or get_company_sector_from_db()
     query = """
     SELECT
+        "CNPJ_CIA",
         "DENOM_CIA",
         "VL_INDICADOR"
     FROM "layer_03_gold"."vw_benchmark_indicadores_anual"
@@ -429,7 +476,7 @@ def get_iprf_sector_benchmark(year: int, cnpj: str = COSAN_CNPJ):
 
 @st.cache_data(ttl=300)
 def get_iprf_sector_peers(year: int, sector: str | None = None):
-    sector = sector or get_cosan_sector_from_db()
+    sector = sector or get_company_sector_from_db()
     query = """
     SELECT
         "CNPJ_CIA",
@@ -459,9 +506,28 @@ def get_iprf_indicator_codes():
     return [item["code"] for item in IPRF_INDICATORS]
 
 
-def get_cosan_reference():
+def get_cosan_sector_from_db(cnpj: str = COSAN_CNPJ) -> str:
+    return get_company_sector_from_db(cnpj)
+
+
+@st.cache_data(ttl=900)
+def get_company_reference(cnpj: str = COSAN_CNPJ):
+    companies = get_companies_for_dashboard()
+    if not companies.empty:
+        match = companies[companies["CNPJ_CIA"] == cnpj]
+        if not match.empty:
+            row = match.iloc[0]
+            return {
+                "cnpj": row["CNPJ_CIA"],
+                "nome": row["DENOM_CIA"],
+                "setor": row["SETOR"] if pd.notna(row["SETOR"]) else COSAN_SETOR,
+            }
     return {
-        "cnpj": COSAN_CNPJ,
-        "nome": COSAN_NAME,
-        "setor": get_cosan_sector_from_db(),
+        "cnpj": cnpj,
+        "nome": COSAN_NAME if cnpj == COSAN_CNPJ else cnpj,
+        "setor": get_company_sector_from_db(cnpj),
     }
+
+
+def get_cosan_reference():
+    return get_company_reference(COSAN_CNPJ)

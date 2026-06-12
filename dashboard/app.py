@@ -15,6 +15,6 @@ render_executive_dashboard()
 st.markdown("---")
 left, right = st.columns([3, 1])
 with left:
-    st.caption("Desenvolvido para fins didaticos de analise de dados CVM.")
+    st.caption("Desenvolvido para fins didáticos de análise de dados da CVM.")
 with right:
     st.caption("Projeto final - COSAN + Benchmark + IPRF")

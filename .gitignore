@@ -1,15 +1,26 @@
-# Ignorando a pasta que possui o ambiente virtual
+# Ambiente virtual Python
 .venv/
+venv/
 
 # Variáveis de ambiente
 .env
 
-# Arquivos do Jupyter e do Python em execução sejam comitados
-_pycache_/
+# Cache Python
+__pycache__/
 *.pyc
+
+# Jupyter
 .ipynb_checkpoints/
 
-# Ignorando dados locais de extensões de arquivos apenas para checagem
+# Dependências Node/JS
+node_modules/
+**/node_modules/
+
+# Dados locais / arquivos pesados
 *.csv
 *.xlsx
 *.zip
+
+# Outputs gerados
+outputs/
+

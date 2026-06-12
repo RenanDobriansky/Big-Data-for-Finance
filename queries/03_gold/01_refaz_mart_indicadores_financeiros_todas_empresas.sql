@@ -5,6 +5,9 @@
 -- 3. Mantem a adaptacao setorial de AT_BIOLOGICO para o setor agricola.
 -- 4. Expande a mart com colunas base para benchmark anual e IPRF.
 
+DROP VIEW IF EXISTS "layer_03_gold"."vw_benchmark_iprf_setorial";
+DROP VIEW IF EXISTS "layer_03_gold"."vw_iprf_empresas_anual";
+DROP VIEW IF EXISTS "layer_03_gold"."vw_benchmark_indicadores_anual";
 DROP TABLE IF EXISTS "layer_03_gold"."mart_indicadores_financeiros";
 
 CREATE TABLE "layer_03_gold"."mart_indicadores_financeiros" AS
