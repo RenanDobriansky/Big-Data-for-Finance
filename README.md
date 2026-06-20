@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/capa-pipeline-financeiro-cvm.png" alt="Pipeline Financeiro com dados da CVM" width="100%">
+  <img src="assets/capa-pipeline-financeiro-cvm.svg" alt="Pipeline Financeiro com dados da CVM" width="100%">
 </p>
 
 <h1 align="center">Pipeline Financeiro com Dados da CVM</h1>
