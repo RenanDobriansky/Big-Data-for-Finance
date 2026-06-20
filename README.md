@@ -1,140 +1,185 @@
-# Big Data for Finance - Pipeline CVM
+<p align="center">
+  <img src="assets/capa-pipeline-financeiro-cvm.png" alt="Pipeline Financeiro com dados da CVM" width="100%">
+</p>
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
-![Postgres](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
-![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
+<h1 align="center">Pipeline Financeiro com Dados da CVM</h1>
 
-## Objetivo do Projeto
+<p align="center">
+  Engenharia de dados financeiros com Python, PostgreSQL e Streamlit, estruturada em arquitetura Bronze, Silver e Gold.
+</p>
 
-Este repositório concentra o projeto da disciplina de **Big Data for Finance**. A proposta é construir um pipeline completo de dados financeiros a partir dos dados públicos da **CVM**, saindo do dado bruto até a análise executiva.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white" alt="Plotly">
+  <img src="https://img.shields.io/badge/Status-Em%20evolu%C3%A7%C3%A3o-0A7E8C?style=for-the-badge" alt="Status">
+</p>
 
-O produto final é uma camada `gold` pronta para consumo analítico, com:
+## Visão geral
 
-- demonstrativos financeiros anuais harmonizados;
-- indicadores financeiros clássicos calculados a partir de `BP`, `DRE` e `DFC`;
-- benchmarking por mediana anual contra toda a base e contra o setor;
-- dashboard executivo em `Streamlit`;
-- score de risco financeiro `IPRF`.
+Este projeto transforma dados públicos da Comissão de Valores Mobiliários em uma base analítica estruturada para avaliação financeira de empresas brasileiras.
 
-## Empresa Analisada
+O pipeline percorre todo o fluxo, desde a ingestão dos demonstrativos brutos até a construção de indicadores, benchmarks e um dashboard executivo em Streamlit.
 
-Na fase atual do projeto, a empresa foco é a **COSAN S.A.**
+A empresa principal do estudo é a **COSAN S.A.**, comparada com:
 
-O dashboard final foi desenhado para:
+- a mediana anual de todas as empresas da base;
+- a mediana do setor **Agricultura (Açúcar, Álcool e Cana)**;
+- outras empresas do mesmo setor por meio do **IPRF — Índice Preventivo de Risco Financeiro**.
 
-- apresentar os demonstrativos anuais da companhia;
-- comparar seus indicadores com a mediana de **todas as empresas da base**;
-- comparar seus indicadores com a mediana do setor **Agricultura (Açúcar, Álcool e Cana)**;
-- comparar o `IPRF` da Cosan com o das demais empresas do mesmo setor.
+## Problema de negócio
 
-## O que é o IPRF
+Os demonstrativos da CVM são públicos, mas não estão prontos para análise direta. Entre os principais desafios estão:
 
-O **IPRF (Índice Preventivo de Risco Financeiro)** é um score sintético de saúde financeira incorporado ao projeto como complemento aos indicadores tradicionais.
+| Desafio | Tratamento aplicado |
+|---|---|
+| Múltiplas versões do mesmo documento | Deduplicação com `ROW_NUMBER()` |
+| Diferenças na nomenclatura das contas | Normalização e mapeamento contábil |
+| Contas ausentes ou incompletas | Reconstrução controlada de contas pai |
+| Hierarquias contábeis inconsistentes | Validações matemáticas e semânticas |
+| Granularidades diferentes | Uso de contas folha e regras de consolidação |
+| Comparações entre empresas | Padronização anual e benchmark por mediana |
 
-Ele resume a situação financeira da empresa a partir de cinco dimensões:
+## Solução desenvolvida
 
-- `Liquidez`
-- `Rentabilidade`
-- `Solvência`
-- `Eficiência Operacional`
-- `Geração de Caixa`
-
-No projeto, o `IPRF` é usado para posicionar a `COSAN S.A.` frente aos pares setoriais e enriquecer a leitura executiva do dashboard.
-
-## Contexto: por que isso é difícil?
-
-Os dados da CVM são públicos, mas chegam com problemas reais de engenharia e contabilidade:
-
-| Problema | Como tratamos |
-| :--- | :--- |
-| Múltiplas versões do mesmo documento | Deduplicação via `ROW_NUMBER()` |
-| Empresas não reportam todas as contas | Reconstrução controlada de contas pai |
-| Nomes de contas variam entre empresas | Normalização com mapeamento contábil |
-| Hierarquia das contas precisa fechar | Validação matemática vertical |
-| Demonstrativos podem vir inconsistentes | Regras de auditoria e flags |
-
-## Escopo Analítico Atual
-
-O projeto evoluiu de um pipeline didático para um caso aplicado de análise financeira empresarial. Hoje, o foco está em:
-
-- `COSAN S.A.` como empresa principal do estudo;
-- base anual `DFP`;
-- comparação com a mediana anual da base completa;
-- comparação com a mediana anual do setor `Agricultura (Açúcar, Álcool e Cana)`;
-- construção de um painel executivo com indicadores e `IPRF`.
-
-No contexto do setor agrícola, uma premissa importante é o tratamento de **Ativos Biológicos** (`CD_CONTA = 1.01.05`). Quando essa conta existir para a empresa, ela deve ser considerada nos indicadores operacionais apropriados, como liquidez seca ajustada, giro de estoques e ciclos.
-
-## Os Três Demonstrativos Financeiros
-
-### Balanço Patrimonial (BP)
-
-Fotografia da empresa em um instante.
+A solução foi organizada em arquitetura Medallion:
 
 ```text
-Ativo = Passivo + Patrimônio Líquido
+Portal de Dados da CVM
+        ↓
+      Bronze
+        ↓
+      Silver
+        ↓
+       Gold
+        ↓
+Dashboard executivo em Streamlit
 ```
 
-### Demonstração do Resultado (DRE)
+### Bronze
 
-Mostra o desempenho da empresa ao longo do período.
+Responsável pela ingestão e preservação dos arquivos originais.
 
-```text
-Receita Líquida - Custos - Despesas = Lucro / Prejuízo
-```
+- carregamento dos dados públicos da CVM;
+- manutenção da estrutura bruta;
+- rastreabilidade da origem;
+- separação por demonstrativo e período.
 
-### Demonstração dos Fluxos de Caixa (DFC)
+### Silver
 
-Mostra de onde veio e para onde foi o caixa no período.
+Responsável pela limpeza, padronização e auditoria.
 
-```text
-Saldo final de caixa da DFC ~= disponibilidades reportadas no BP
-```
-
-## Taxonomia CVM
-
-Os códigos `CD_CONTA` são hierárquicos. Exemplo:
-
-```text
-1
-├── 1.01
-│   ├── 1.01.01
-│   └── 1.01.02
-└── 1.02
-```
-
-Na prática, isso significa que contas pai e filho precisam respeitar coerência matemática e semântica.
-
-## Arquitetura Medallion
-
-```text
-Portal CVM -> Bronze -> Silver -> Gold -> Dashboard
-```
-
-### Bronze - `layer_01_bronze`
-
-- ingestão bruta dos arquivos da CVM;
-- sem transformação conceitual;
-- preservação fiel da origem.
-
-### Silver - `layer_02_silver`
-
-- deduplicação;
-- padronização de colunas;
+- deduplicação dos documentos;
+- padronização de colunas e tipos;
 - normalização de nomes de contas;
+- reconstrução controlada de contas pai;
 - validações matemáticas;
-- flags de auditoria.
+- criação de flags de qualidade;
+- organização de `BP`, `DRE` e `DFC`.
 
-### Gold - `layer_03_gold`
+### Gold
+
+Responsável pela camada analítica final.
 
 - mart anual de indicadores financeiros;
-- views de benchmark por mediana;
+- benchmark geral e setorial;
 - views auxiliares para o dashboard;
-- cálculo do `IPRF`;
-- consumo final por análises e visualizações.
+- cálculo do IPRF;
+- consolidação da análise da COSAN S.A.
 
-## Estrutura do Projeto
+## Principais entregas
+
+- pipeline financeiro completo em arquitetura Bronze, Silver e Gold;
+- tratamento dos demonstrativos `BP`, `DRE` e `DFC`;
+- harmonização da taxonomia contábil da CVM;
+- validação da hierarquia e dos saldos;
+- cálculo de indicadores financeiros clássicos;
+- comparação com medianas gerais e setoriais;
+- score sintético de risco financeiro;
+- dashboard executivo em Streamlit;
+- documentação das regras de negócio e transformação.
+
+## Indicadores analisados
+
+O projeto contempla indicadores agrupados em cinco dimensões:
+
+### Liquidez
+
+- Liquidez Corrente;
+- Liquidez Seca;
+- Liquidez Imediata;
+- Capital de Giro Líquido.
+
+### Rentabilidade
+
+- Margem Líquida;
+- Margem Operacional;
+- ROA;
+- ROE.
+
+### Solvência
+
+- Endividamento Geral;
+- Composição do Endividamento;
+- Dívida Líquida;
+- Cobertura de Juros.
+
+### Eficiência operacional
+
+- Giro do Ativo;
+- Giro de Estoques;
+- Prazo Médio de Recebimento;
+- Prazo Médio de Pagamento;
+- Ciclo Financeiro.
+
+### Geração de caixa
+
+- Fluxo de Caixa Operacional;
+- Conversão de EBITDA em Caixa;
+- Cobertura de Investimentos;
+- Fluxo de Caixa Livre.
+
+> No setor agrícola, a conta `1.01.05 — Ativos Biológicos` é considerada nos indicadores em que sua natureza econômica afeta a análise operacional.
+
+## IPRF — Índice Preventivo de Risco Financeiro
+
+O IPRF é um score criado para resumir a situação financeira da empresa em cinco dimensões:
+
+1. Liquidez;
+2. Rentabilidade;
+3. Solvência;
+4. Eficiência Operacional;
+5. Geração de Caixa.
+
+O índice permite posicionar a COSAN S.A. em relação aos pares setoriais e complementar a leitura dos indicadores tradicionais.
+
+## Dashboard executivo
+
+O dashboard foi desenvolvido em Streamlit e apresenta:
+
+- visão consolidada da empresa;
+- evolução histórica dos indicadores;
+- comparativo com a mediana da base;
+- comparativo com a mediana do setor;
+- análise do IPRF;
+- demonstrativos financeiros anuais;
+- filtros e navegação interativa.
+
+## Tecnologias utilizadas
+
+| Categoria | Tecnologia | Aplicação |
+|---|---|---|
+| Linguagem | Python | Ingestão, transformação, análise e aplicação |
+| Banco de dados | PostgreSQL | Armazenamento das camadas Bronze, Silver e Gold |
+| Processamento | pandas | Limpeza, transformação e validação |
+| Modelagem e conexão | SQLAlchemy e psycopg2 | Integração entre Python e PostgreSQL |
+| Notebooks | Jupyter | Exploração e desenvolvimento |
+| Dashboard | Streamlit | Interface analítica |
+| Visualização | Plotly | Gráficos e comparações interativas |
+| Configuração | python-dotenv | Gerenciamento de variáveis de ambiente |
+
+## Estrutura do projeto
 
 ```text
 big_data_for_finance/
@@ -149,84 +194,32 @@ big_data_for_finance/
 │   ├── constants.py
 │   ├── database.py
 │   └── views/
-├── .env
+├── assets/
 ├── requirements.txt
+├── .env.example
 └── README.md
 ```
 
-## Camada Silver
+## Como executar
 
-As tabelas da `silver` seguem um formato padronizado para permitir empilhamento e auditoria. Entre as colunas mais importantes estão:
+### 1. Clone o repositório
 
-- `CD_CONTA`
-- `DS_CONTA`
-- `VL_CONTA_TRATADO`
-- `STATUS_MATH`
-- `FLAG_RECONSTRUCAO`
-- `FLAG_NORMALIZACAO`
-- `IS_LEAF`
+```bash
+git clone https://github.com/RenanDobriansky/Big-Data-for-Finance.git
+cd Big-Data-for-Finance
+```
 
-Regra importante:
+### 2. Crie o ambiente virtual
 
-> Nunca some contas em análises finais sem considerar corretamente a granularidade e a hierarquia da taxonomia CVM.
+```bash
+python -m venv .venv
+```
 
-## Camada Gold
+No Windows:
 
-A camada `gold` é onde os saldos harmonizados viram artefatos analíticos prontos para uso.
-
-Ela concentra:
-
-- indicadores financeiros clássicos;
-- mart anual para comparação entre empresas;
-- medianas anuais gerais;
-- medianas anuais setoriais;
-- score `IPRF` por empresa;
-- benchmark setorial do `IPRF`;
-- apoio direto ao dashboard executivo da `COSAN S.A.`.
-
-## Fontes de Dados
-
-| Dataset | Descrição | Link |
-| :--- | :--- | :---: |
-| Cadastro de Cias Abertas | Dados cadastrais | [Link](https://dados.cvm.gov.br/dataset/cia_aberta-cad) |
-| DFP | Demonstrativos anuais | [Link](https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp) |
-| ITR | Demonstrativos trimestrais | [Link](https://dados.cvm.gov.br/dataset/cia_aberta-doc-itr) |
-| FRE | Formulário de referência | [Link](https://dados.cvm.gov.br/dataset/cia_aberta-doc-fre) |
-
-Diretório geral:
-
-- `http://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/`
-
-## Tecnologias Utilizadas
-
-| Categoria | Tecnologia | Uso |
-| :--- | :--- | :--- |
-| Linguagem | Python 3.10+ | Pipeline, notebooks e app |
-| Banco de dados | PostgreSQL | Armazenamento das camadas |
-| Notebooks | Jupyter / VS Code | Exploração e desenvolvimento |
-| Dashboard | Streamlit + Plotly | Visualização executiva |
-| Conexão | SQLAlchemy + psycopg2 | Interface Python e PostgreSQL |
-| Dados | pandas | Transformação e análise |
-| Configuração | python-dotenv | Credenciais e ambiente |
-
-## Setup do Projeto
-
-### 1. Pré-requisitos
-
-- [Python 3.10+](https://www.python.org/downloads/)
-- [PostgreSQL](https://www.postgresql.org/download/)
-- [VS Code](https://code.visualstudio.com/)
-- [Git](https://git-scm.com/downloads)
-
-### 2. Estrutura mínima
-
-Crie as pastas:
-
-- `notebooks/01_bronze/`
-- `notebooks/02_silver/`
-- `notebooks/03_gold/`
-- `queries/`
-- `dashboard/`
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
 ### 3. Instale as dependências
 
@@ -234,7 +227,9 @@ Crie as pastas:
 pip install -r requirements.txt
 ```
 
-### 4. Configure o `.env`
+### 4. Configure as variáveis de ambiente
+
+Crie um arquivo `.env` com base no `.env.example`:
 
 ```env
 DB_HOST=localhost
@@ -244,55 +239,48 @@ DB_USER=seu_usuario
 DB_PASSWORD=sua_senha
 ```
 
-Se o código local estiver configurado para `DB_PASS`, mantenha a mesma senha também nessa chave:
-
-```env
-DB_PASS=sua_senha
-```
-
 ### 5. Crie o banco e os schemas
 
 ```sql
 CREATE DATABASE bigdata_for_finance;
-
-\c bigdata_for_finance
 
 CREATE SCHEMA IF NOT EXISTS layer_01_bronze;
 CREATE SCHEMA IF NOT EXISTS layer_02_silver;
 CREATE SCHEMA IF NOT EXISTS layer_03_gold;
 ```
 
-## Como abrir o dashboard
+### 6. Execute o dashboard
 
-Na raiz do projeto:
-
-```powershell
-C:\Users\renan\AppData\Local\Programs\Python\Python312\python.exe -m streamlit run dashboard/app.py
+```bash
+streamlit run dashboard/app.py
 ```
 
-Depois abra:
+## Regras de qualidade
 
-```text
-http://localhost:8501
-```
+- não sobrescrever valores originais sem justificativa contábil;
+- tratar a deduplicação antes das análises;
+- preservar a rastreabilidade das transformações;
+- respeitar a hierarquia das contas da CVM;
+- evitar somas incorretas entre contas pai e filho;
+- validar fórmulas sensíveis com amostras reais;
+- manter credenciais fora do versionamento.
 
-## Regras Inegociáveis
+## Próximos passos
 
-1. Não sobrescrever valores originais da CVM sem justificativa contábil clara.
-2. Tratar deduplicação antes de qualquer análise.
-3. Manter rastreabilidade das transformações.
-4. Preferir SQL com CTEs para legibilidade.
-5. Validar fórmulas sensíveis com amostras reais antes de publicar resultados.
+- adicionar capturas reais do dashboard;
+- ampliar a cobertura de testes automatizados;
+- documentar o dicionário completo de indicadores;
+- automatizar novas cargas anuais da CVM;
+- incluir novas empresas e setores no dashboard;
+- disponibilizar uma demonstração pública da aplicação.
 
-## Resultado Esperado
+## Autor
 
-Ao final, o projeto entrega:
+**Renan Dobriansky**  
+Analista de Dados | Power BI | SQL | Python | Engenharia de Dados
 
-- pipeline financeiro `Bronze -> Silver -> Gold`;
-- benchmarking anual entre empresas;
-- painel executivo da `COSAN S.A.`;
-- leitura integrada de demonstrativos, indicadores e `IPRF`.
+[LinkedIn](https://www.linkedin.com/in/renandobriansky/) • [GitHub](https://github.com/RenanDobriansky)
 
 ---
 
-Projeto desenvolvido na disciplina de Big Data for Finance pelo Prof. Ivan Ribeiro Mello.
+Projeto desenvolvido na disciplina de **Big Data for Finance**, da FAE Business School.
